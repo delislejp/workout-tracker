@@ -6,16 +6,19 @@
     <title>Workout Tracker</title>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
     <script crossorigin src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/recharts/2.5.0/Recharts.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/umd/lucide.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
     <div id="root"></div>
 
-    <script>
-        const { createElement: h, useState, useEffect, useRef } = React;
+    <script type="text/babel">
+        const { Plus, TrendingUp, Dumbbell, Bike, Calendar, Trash2, X } = lucide;
+        const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } = Recharts;
 
-        // Storage API
+        // Simple localStorage-based storage for GitHub Pages
         window.storage = {
             get: async (key) => {
                 const value = localStorage.getItem(key);
@@ -31,70 +34,22 @@
             }
         };
 
-        // Simple Chart Component
-        function LineChartComponent({ data, dataKey, title, color }) {
-            const canvasRef = useRef(null);
-            const chartRef = useRef(null);
-
-            useEffect(() => {
-                if (!canvasRef.current || !data || data.length === 0) return;
-
-                if (chartRef.current) {
-                    chartRef.current.destroy();
-                }
-
-                const ctx = canvasRef.current.getContext('2d');
-                chartRef.current = new Chart(ctx, {
-                    type: 'line',
-                    data: {
-                        labels: data.map(d => d.date),
-                        datasets: [{
-                            label: title,
-                            data: data.map(d => d[dataKey]),
-                            borderColor: color,
-                            backgroundColor: color + '20',
-                            tension: 0.3,
-                            fill: true
-                        }]
-                    },
-                    options: {
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        plugins: {
-                            legend: { display: false }
-                        },
-                        scales: {
-                            y: { beginAtZero: true }
-                        }
-                    }
-                });
-
-                return () => {
-                    if (chartRef.current) {
-                        chartRef.current.destroy();
-                    }
-                };
-            }, [data, dataKey, title, color]);
-
-            return h('canvas', { ref: canvasRef, style: { height: '200px' } });
-        }
-
         function WorkoutTracker() {
-            const [view, setView] = useState('log');
-            const [workoutType, setWorkoutType] = useState('strength');
-            const [workouts, setWorkouts] = useState([]);
-            const [selectedExercise, setSelectedExercise] = useState('');
+            const [view, setView] = React.useState('log');
+            const [workoutType, setWorkoutType] = React.useState('strength');
+            const [workouts, setWorkouts] = React.useState([]);
+            const [selectedExercise, setSelectedExercise] = React.useState('');
             
-            const [exerciseName, setExerciseName] = useState('');
-            const [isNewExercise, setIsNewExercise] = useState(false);
-            const [currentSets, setCurrentSets] = useState([]);
-            const [setWeight, setSetWeight] = useState('');
-            const [setReps, setSetReps] = useState('');
+            const [exerciseName, setExerciseName] = React.useState('');
+            const [isNewExercise, setIsNewExercise] = React.useState(false);
+            const [currentSets, setCurrentSets] = React.useState([]);
+            const [setWeight, setSetWeight] = React.useState('');
+            const [setReps, setSetReps] = React.useState('');
             
-            const [bikeTime, setBikeTime] = useState('');
-            const [bikeDistance, setBikeDistance] = useState('');
+            const [bikeTime, setBikeTime] = React.useState('');
+            const [bikeDistance, setBikeDistance] = React.useState('');
 
-            useEffect(() => {
+            React.useEffect(() => {
                 loadWorkouts();
             }, []);
 
@@ -183,9 +138,10 @@
             };
 
             const getLastWorkout = (exerciseName) => {
-                return workouts
+                const lastWorkout = workouts
                     .filter(w => w.type === 'strength' && w.exerciseName === exerciseName)
                     .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+                return lastWorkout;
             };
 
             const getLastBikeWorkout = () => {
@@ -206,7 +162,7 @@
                 }
             };
 
-            useEffect(() => {
+            React.useEffect(() => {
                 if (workoutType === 'bike' && !bikeTime) {
                     const lastBike = getLastBikeWorkout();
                     if (lastBike) {
@@ -254,271 +210,358 @@
 
             const recentWorkouts = [...workouts].reverse().slice(0, 10);
 
-            return h('div', { className: 'min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4' },
-                h('div', { className: 'max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden' },
-                    h('div', { className: 'bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white' },
-                        h('h1', { className: 'text-2xl font-bold flex items-center gap-2' },
-                            '💪 Workout Tracker'
-                        ),
-                        h('p', { className: 'text-blue-100 text-sm mt-1' }, `${workouts.length} total sessions logged`)
-                    ),
-                    h('div', { className: 'flex border-b' },
-                        h('button', {
-                            onClick: () => setView('log'),
-                            className: `flex-1 py-3 font-semibold flex items-center justify-center gap-2 ${view === 'log' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`
-                        }, '➕ Log Workout'),
-                        h('button', {
-                            onClick: () => setView('progress'),
-                            className: `flex-1 py-3 font-semibold flex items-center justify-center gap-2 ${view === 'progress' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'}`
-                        }, '📈 Progress')
-                    ),
-                    h('div', { className: 'p-6' },
-                        view === 'log' ? 
-                            h('div', null,
-                                h('div', { className: 'flex gap-2 mb-6' },
-                                    h('button', {
-                                        onClick: () => setWorkoutType('strength'),
-                                        className: `flex-1 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 ${workoutType === 'strength' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`
-                                    }, '💪 Strength'),
-                                    h('button', {
-                                        onClick: () => setWorkoutType('bike'),
-                                        className: `flex-1 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 ${workoutType === 'bike' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`
-                                    }, '🚴 Bike')
-                                ),
-                                workoutType === 'strength' ?
-                                    h('div', { className: 'space-y-4' },
-                                        h('div', null,
-                                            h('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Exercise'),
-                                            !isNewExercise && getUniqueExercises().length > 0 ?
-                                                h('div', { className: 'space-y-2' },
-                                                    h('select', {
-                                                        value: exerciseName,
-                                                        onChange: (e) => handleExerciseSelect(e.target.value),
-                                                        className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                                                    },
-                                                        h('option', { value: '' }, 'Select an exercise'),
-                                                        ...getUniqueExercises().map(ex => h('option', { key: ex, value: ex }, ex))
-                                                    ),
-                                                    h('button', {
-                                                        onClick: () => setIsNewExercise(true),
-                                                        className: 'text-sm text-blue-600 hover:text-blue-700'
-                                                    }, '+ Add new exercise')
-                                                ) :
-                                                h('div', { className: 'space-y-2' },
-                                                    h('input', {
-                                                        type: 'text',
-                                                        value: exerciseName,
-                                                        onChange: (e) => setExerciseName(e.target.value),
-                                                        placeholder: 'e.g., Bench Press',
-                                                        className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                                                    }),
-                                                    getUniqueExercises().length > 0 && h('button', {
-                                                        onClick: () => {
-                                                            setIsNewExercise(false);
-                                                            setExerciseName('');
-                                                            setSetWeight('');
-                                                            setSetReps('');
-                                                        },
-                                                        className: 'text-sm text-blue-600 hover:text-blue-700'
-                                                    }, '← Choose from existing exercises')
-                                                )
-                                        ),
-                                        currentSets.length > 0 && h('div', { className: 'bg-gray-50 rounded-lg p-3' },
-                                            h('h4', { className: 'text-sm font-semibold text-gray-700 mb-2' }, 'Current Sets'),
-                                            h('div', { className: 'space-y-2' },
-                                                ...currentSets.map((set, index) =>
-                                                    h('div', { key: index, className: 'flex items-center justify-between bg-white p-2 rounded' },
-                                                        h('span', { className: 'text-sm' },
-                                                            `Set ${index + 1}: `,
-                                                            h('strong', null, `${set.weight} lbs`),
-                                                            ' × ',
-                                                            h('strong', null, `${set.reps} reps`)
-                                                        ),
-                                                        h('button', {
-                                                            onClick: () => removeSet(index),
-                                                            className: 'text-red-500 hover:text-red-700'
-                                                        }, h(X, { size: 16 }))
-                                                    )
-                                                )
-                                            )
-                                        ),
-                                        exerciseName && h('div', null,
-                                            h('div', { className: 'grid grid-cols-2 gap-3' },
-                                                h('div', null,
-                                                    h('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Weight (lbs)'),
-                                                    h('input', {
-                                                        type: 'number',
-                                                        value: setWeight,
-                                                        onChange: (e) => setSetWeight(e.target.value),
-                                                        placeholder: '135',
-                                                        className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                                                    })
-                                                ),
-                                                h('div', null,
-                                                    h('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Reps'),
-                                                    h('input', {
-                                                        type: 'number',
-                                                        value: setReps,
-                                                        onChange: (e) => setSetReps(e.target.value),
-                                                        placeholder: '10',
-                                                        className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                                                    })
-                                                )
-                                            ),
-                                            h('button', {
-                                                onClick: addSet,
-                                                disabled: !setWeight || !setReps,
-                                                className: 'w-full bg-indigo-100 text-indigo-700 py-2 rounded-lg font-semibold hover:bg-indigo-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2 mt-3'
-                                            },
-                                                h(Plus, { size: 18 }),
-                                                'Add Set'
-                                            )
-                                        ),
-                                        h('button', {
-                                            onClick: logStrengthWorkout,
-                                            disabled: !exerciseName || currentSets.length === 0,
-                                            className: 'w-full mt-4 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors'
-                                        }, `Log Workout (${currentSets.length} set${currentSets.length !== 1 ? 's' : ''})`)
-                                    ) :
-                                    h('div', { className: 'space-y-4' },
-                                        h('div', null,
-                                            h('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Time (minutes)'),
-                                            h('input', {
-                                                type: 'number',
-                                                value: bikeTime,
-                                                onChange: (e) => setBikeTime(e.target.value),
-                                                placeholder: '30',
-                                                className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                                            })
-                                        ),
-                                        h('div', null,
-                                            h('label', { className: 'block text-sm font-medium text-gray-700 mb-1' }, 'Distance (km, optional)'),
-                                            h('input', {
-                                                type: 'number',
-                                                step: '0.1',
-                                                value: bikeDistance,
-                                                onChange: (e) => setBikeDistance(e.target.value),
-                                                placeholder: '15.5',
-                                                className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                                            })
-                                        ),
-                                        h('button', {
-                                            onClick: logBikeWorkout,
-                                            disabled: !bikeTime,
-                                            className: 'w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors'
-                                        }, 'Log Workout')
-                                    ),
-                                recentWorkouts.length > 0 && h('div', { className: 'mt-8' },
-                                    h('h3', { className: 'text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2' },
-                                        '📅 Recent Sessions'
-                                    ),
-                                    h('div', { className: 'space-y-2' },
-                                        ...recentWorkouts.map(workout =>
-                                            h('div', { key: workout.id, className: 'bg-gray-50 p-3 rounded-lg' },
-                                                h('div', { className: 'flex justify-between items-start mb-2' },
-                                                    h('div', { className: 'font-semibold text-gray-800' },
-                                                        workout.type === 'strength' ? workout.exerciseName : 'Stationary Bike'
-                                                    ),
-                                                    h('button', {
-                                                        onClick: () => deleteWorkout(workout.id),
-                                                        className: 'text-red-500 hover:text-red-700 p-1'
-                                                    }, '🗑️')
-                                                ),
-                                                workout.type === 'strength' ?
-                                                    h('div', { className: 'text-sm text-gray-600 space-y-1' },
-                                                        ...workout.sets.map((set, i) =>
-                                                            h('div', { key: i }, `Set ${i + 1}: ${set.weight} lbs × ${set.reps} reps`)
-                                                        )
-                                                    ) :
-                                                    h('div', { className: 'text-sm text-gray-600' },
-                                                        `${workout.time} min${workout.distance ? ` • ${workout.distance} km` : ''}`
-                                                    ),
-                                                h('div', { className: 'text-xs text-gray-500 mt-2' }, formatDate(workout.date))
-                                            )
-                                        )
-                                    )
-                                )
-                            ) :
-                            h('div', null,
-                                h('div', { className: 'flex gap-2 mb-6' },
-                                    h('button', {
-                                        onClick: () => setWorkoutType('strength'),
-                                        className: `flex-1 py-2 rounded-lg font-semibold text-sm ${workoutType === 'strength' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`
-                                    }, 'Strength'),
-                                    h('button', {
-                                        onClick: () => setWorkoutType('bike'),
-                                        className: `flex-1 py-2 rounded-lg font-semibold text-sm ${workoutType === 'bike' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'}`
-                                    }, 'Bike')
-                                ),
-                                workoutType === 'strength' && h('div', { className: 'mb-6' },
-                                    h('label', { className: 'block text-sm font-medium text-gray-700 mb-2' }, 'Select Exercise'),
-                                    h('select', {
-                                        value: selectedExercise,
-                                        onChange: (e) => setSelectedExercise(e.target.value),
-                                        className: 'w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent'
-                                    },
-                                        h('option', { value: '' }, 'Choose an exercise'),
-                                        ...getUniqueExercises().map(ex => h('option', { key: ex, value: ex }, ex))
-                                    )
-                                ),
-                                getProgressData().length > 0 ?
-                                    h('div', { className: 'space-y-6' },
-                                        workoutType === 'strength' ?
-                                            h('div', null,
-                                                h('div', null,
-                                                    h('h3', { className: 'text-sm font-semibold text-gray-700 mb-3' }, 'Max Weight Per Session'),
-                                                    h(LineChartComponent, { 
-                                                        data: getProgressData(), 
-                                                        dataKey: 'maxWeight',
-                                                        title: 'Max Weight',
-                                                        color: '#2563eb'
-                                                    })
-                                                ),
-                                                h('div', { className: 'mt-6' },
-                                                    h('h3', { className: 'text-sm font-semibold text-gray-700 mb-3' }, 'Total Volume Per Session'),
-                                                    h(LineChartComponent, { 
-                                                        data: getProgressData(), 
-                                                        dataKey: 'totalVolume',
-                                                        title: 'Total Volume',
-                                                        color: '#7c3aed'
-                                                    })
-                                                )
-                                            ) :
-                                            h('div', null,
-                                                h('div', null,
-                                                    h('h3', { className: 'text-sm font-semibold text-gray-700 mb-3' }, 'Time Progress'),
-                                                    h(LineChartComponent, { 
-                                                        data: getProgressData(), 
-                                                        dataKey: 'time',
-                                                        title: 'Time (min)',
-                                                        color: '#2563eb'
-                                                    })
-                                                ),
-                                                h('div', { className: 'mt-6' },
-                                                    h('h3', { className: 'text-sm font-semibold text-gray-700 mb-3' }, 'Distance Progress'),
-                                                    h(LineChartComponent, { 
-                                                        data: getProgressData(), 
-                                                        dataKey: 'distance',
-                                                        title: 'Distance (km)',
-                                                        color: '#059669'
-                                                    })
-                                                )
-                                            )
-                                    ) :
-                                    h('div', { className: 'text-center py-12 text-gray-500' },
-                                        h('p', { className: 'text-6xl mb-3' }, '📈'),
-                                        h('p', null, 'No data yet. Start logging workouts to see your progress!')
-                                    )
-                            )
-                    )
-                )
+            return (
+                <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+                    <div className="max-w-md mx-auto bg-white rounded-2xl shadow-xl overflow-hidden">
+                        <div className="bg-gradient-to-r from-blue-600 to-indigo-600 p-6 text-white">
+                            <h1 className="text-2xl font-bold flex items-center gap-2">
+                                <Dumbbell size={28} />
+                                Workout Tracker
+                            </h1>
+                            <p className="text-blue-100 text-sm mt-1">{workouts.length} total sessions logged</p>
+                        </div>
+
+                        <div className="flex border-b">
+                            <button
+                                onClick={() => setView('log')}
+                                className={`flex-1 py-3 font-semibold flex items-center justify-center gap-2 ${
+                                    view === 'log' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
+                                }`}
+                            >
+                                <Plus size={20} />
+                                Log Workout
+                            </button>
+                            <button
+                                onClick={() => setView('progress')}
+                                className={`flex-1 py-3 font-semibold flex items-center justify-center gap-2 ${
+                                    view === 'progress' ? 'text-blue-600 border-b-2 border-blue-600' : 'text-gray-500'
+                                }`}
+                            >
+                                <TrendingUp size={20} />
+                                Progress
+                            </button>
+                        </div>
+
+                        <div className="p-6">
+                            {view === 'log' ? (
+                                <>
+                                    <div className="flex gap-2 mb-6">
+                                        <button
+                                            onClick={() => setWorkoutType('strength')}
+                                            className={`flex-1 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 ${
+                                                workoutType === 'strength' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                                            }`}
+                                        >
+                                            <Dumbbell size={20} />
+                                            Strength
+                                        </button>
+                                        <button
+                                            onClick={() => setWorkoutType('bike')}
+                                            className={`flex-1 py-3 rounded-lg font-semibold flex items-center justify-center gap-2 ${
+                                                workoutType === 'bike' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                                            }`}
+                                        >
+                                            <Bike size={20} />
+                                            Bike
+                                        </button>
+                                    </div>
+
+                                    {workoutType === 'strength' ? (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Exercise</label>
+                                                {!isNewExercise && getUniqueExercises().length > 0 ? (
+                                                    <div className="space-y-2">
+                                                        <select
+                                                            value={exerciseName}
+                                                            onChange={(e) => handleExerciseSelect(e.target.value)}
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        >
+                                                            <option value="">Select an exercise</option>
+                                                            {getUniqueExercises().map(ex => (
+                                                                <option key={ex} value={ex}>{ex}</option>
+                                                            ))}
+                                                        </select>
+                                                        <button
+                                                            onClick={() => setIsNewExercise(true)}
+                                                            className="text-sm text-blue-600 hover:text-blue-700"
+                                                        >
+                                                            + Add new exercise
+                                                        </button>
+                                                    </div>
+                                                ) : (
+                                                    <div className="space-y-2">
+                                                        <input
+                                                            type="text"
+                                                            value={exerciseName}
+                                                            onChange={(e) => setExerciseName(e.target.value)}
+                                                            placeholder="e.g., Bench Press"
+                                                            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                        />
+                                                        {getUniqueExercises().length > 0 && (
+                                                            <button
+                                                                onClick={() => {
+                                                                    setIsNewExercise(false);
+                                                                    setExerciseName('');
+                                                                    setSetWeight('');
+                                                                    setSetReps('');
+                                                                }}
+                                                                className="text-sm text-blue-600 hover:text-blue-700"
+                                                            >
+                                                                ← Choose from existing exercises
+                                                            </button>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
+
+                                            {currentSets.length > 0 && (
+                                                <div className="bg-gray-50 rounded-lg p-3">
+                                                    <h4 className="text-sm font-semibold text-gray-700 mb-2">Current Sets</h4>
+                                                    <div className="space-y-2">
+                                                        {currentSets.map((set, index) => (
+                                                            <div key={index} className="flex items-center justify-between bg-white p-2 rounded">
+                                                                <span className="text-sm">
+                                                                    Set {index + 1}: <strong>{set.weight} lbs</strong> × <strong>{set.reps} reps</strong>
+                                                                </span>
+                                                                <button
+                                                                    onClick={() => removeSet(index)}
+                                                                    className="text-red-500 hover:text-red-700"
+                                                                >
+                                                                    <X size={16} />
+                                                                </button>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            )}
+
+                                            {exerciseName && (
+                                                <>
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">Weight (lbs)</label>
+                                                            <input
+                                                                type="number"
+                                                                value={setWeight}
+                                                                onChange={(e) => setSetWeight(e.target.value)}
+                                                                placeholder="135"
+                                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <label className="block text-sm font-medium text-gray-700 mb-1">Reps</label>
+                                                            <input
+                                                                type="number"
+                                                                value={setReps}
+                                                                onChange={(e) => setSetReps(e.target.value)}
+                                                                placeholder="10"
+                                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                            />
+                                                        </div>
+                                                    </div>
+
+                                                    <button
+                                                        onClick={addSet}
+                                                        disabled={!setWeight || !setReps}
+                                                        className="w-full bg-indigo-100 text-indigo-700 py-2 rounded-lg font-semibold hover:bg-indigo-200 disabled:bg-gray-100 disabled:text-gray-400 disabled:cursor-not-allowed transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                        <Plus size={18} />
+                                                        Add Set
+                                                    </button>
+                                                </>
+                                            )}
+
+                                            <button
+                                                onClick={logStrengthWorkout}
+                                                disabled={!exerciseName || currentSets.length === 0}
+                                                className="w-full mt-4 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                Log Workout ({currentSets.length} set{currentSets.length !== 1 ? 's' : ''})
+                                            </button>
+                                        </div>
+                                    ) : (
+                                        <div className="space-y-4">
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Time (minutes)</label>
+                                                <input
+                                                    type="number"
+                                                    value={bikeTime}
+                                                    onChange={(e) => setBikeTime(e.target.value)}
+                                                    placeholder="30"
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+                                            <div>
+                                                <label className="block text-sm font-medium text-gray-700 mb-1">Distance (km, optional)</label>
+                                                <input
+                                                    type="number"
+                                                    step="0.1"
+                                                    value={bikeDistance}
+                                                    onChange={(e) => setBikeDistance(e.target.value)}
+                                                    placeholder="15.5"
+                                                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                                />
+                                            </div>
+
+                                            <button
+                                                onClick={logBikeWorkout}
+                                                disabled={!bikeTime}
+                                                className="w-full mt-6 bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+                                            >
+                                                Log Workout
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {recentWorkouts.length > 0 && (
+                                        <div className="mt-8">
+                                            <h3 className="text-lg font-semibold text-gray-800 mb-3 flex items-center gap-2">
+                                                <Calendar size={20} />
+                                                Recent Sessions
+                                            </h3>
+                                            <div className="space-y-2">
+                                                {recentWorkouts.map(workout => (
+                                                    <div key={workout.id} className="bg-gray-50 p-3 rounded-lg">
+                                                        <div className="flex justify-between items-start mb-2">
+                                                            <div className="font-semibold text-gray-800">
+                                                                {workout.type === 'strength' ? workout.exerciseName : 'Stationary Bike'}
+                                                            </div>
+                                                            <button
+                                                                onClick={() => deleteWorkout(workout.id)}
+                                                                className="text-red-500 hover:text-red-700 p-1"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </div>
+                                                        {workout.type === 'strength' ? (
+                                                            <div className="text-sm text-gray-600 space-y-1">
+                                                                {workout.sets.map((set, i) => (
+                                                                    <div key={i}>Set {i + 1}: {set.weight} lbs × {set.reps} reps</div>
+                                                                ))}
+                                                            </div>
+                                                        ) : (
+                                                            <div className="text-sm text-gray-600">
+                                                                {workout.time} min{workout.distance ? ` • ${workout.distance} km` : ''}
+                                                            </div>
+                                                        )}
+                                                        <div className="text-xs text-gray-500 mt-2">{formatDate(workout.date)}</div>
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex gap-2 mb-6">
+                                        <button
+                                            onClick={() => setWorkoutType('strength')}
+                                            className={`flex-1 py-2 rounded-lg font-semibold text-sm ${
+                                                workoutType === 'strength' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                                            }`}
+                                        >
+                                            Strength
+                                        </button>
+                                        <button
+                                            onClick={() => setWorkoutType('bike')}
+                                            className={`flex-1 py-2 rounded-lg font-semibold text-sm ${
+                                                workoutType === 'bike' ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-600'
+                                            }`}
+                                        >
+                                            Bike
+                                        </button>
+                                    </div>
+
+                                    {workoutType === 'strength' && (
+                                        <div className="mb-6">
+                                            <label className="block text-sm font-medium text-gray-700 mb-2">Select Exercise</label>
+                                            <select
+                                                value={selectedExercise}
+                                                onChange={(e) => setSelectedExercise(e.target.value)}
+                                                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                                            >
+                                                <option value="">Choose an exercise</option>
+                                                {getUniqueExercises().map(ex => (
+                                                    <option key={ex} value={ex}>{ex}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                    )}
+
+                                    {getProgressData().length > 0 ? (
+                                        <div className="space-y-6">
+                                            {workoutType === 'strength' ? (
+                                                <>
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-700 mb-3">Max Weight Per Session</h3>
+                                                        <ResponsiveContainer width="100%" height={200}>
+                                                            <LineChart data={getProgressData()}>
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <XAxis dataKey="date" tick={{fontSize: 10}} />
+                                                                <YAxis />
+                                                                <Tooltip />
+                                                                <Line type="monotone" dataKey="maxWeight" stroke="#2563eb" strokeWidth={2} />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-700 mb-3">Total Volume Per Session</h3>
+                                                        <ResponsiveContainer width="100%" height={200}>
+                                                            <LineChart data={getProgressData()}>
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <XAxis dataKey="date" tick={{fontSize: 10}} />
+                                                                <YAxis />
+                                                                <Tooltip />
+                                                                <Line type="monotone" dataKey="totalVolume" stroke="#7c3aed" strokeWidth={2} />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </>
+                                            ) : (
+                                                <>
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-700 mb-3">Time Progress</h3>
+                                                        <ResponsiveContainer width="100%" height={200}>
+                                                            <LineChart data={getProgressData()}>
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <XAxis dataKey="date" tick={{fontSize: 10}} />
+                                                                <YAxis />
+                                                                <Tooltip />
+                                                                <Line type="monotone" dataKey="time" stroke="#2563eb" strokeWidth={2} />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                    <div>
+                                                        <h3 className="text-sm font-semibold text-gray-700 mb-3">Distance Progress</h3>
+                                                        <ResponsiveContainer width="100%" height={200}>
+                                                            <LineChart data={getProgressData()}>
+                                                                <CartesianGrid strokeDasharray="3 3" />
+                                                                <XAxis dataKey="date" tick={{fontSize: 10}} />
+                                                                <YAxis />
+                                                                <Tooltip />
+                                                                <Line type="monotone" dataKey="distance" stroke="#059669" strokeWidth={2} />
+                                                            </LineChart>
+                                                        </ResponsiveContainer>
+                                                    </div>
+                                                </>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <div className="text-center py-12 text-gray-500">
+                                            <TrendingUp size={48} className="mx-auto mb-3 opacity-30" />
+                                            <p>No data yet. Start logging workouts to see your progress!</p>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+                        </div>
+                    </div>
+                </div>
             );
         }
 
-        window.addEventListener('load', () => {
-            const root = ReactDOM.createRoot(document.getElementById('root'));
-            root.render(React.createElement(WorkoutTracker));
-        });
+        ReactDOM.render(<WorkoutTracker />, document.getElementById('root'));
     </script>
 </body>
 </html>
