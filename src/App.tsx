@@ -1,17 +1,42 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { Plus, TrendingUp, Dumbbell, Bike, Calendar, Trash2, X } from 'lucide-react';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+
+interface WorkoutSet {
+  weight: number;
+  reps: number;
+}
+
+interface BaseWorkout {
+  id: number;
+  date: string;
+  type: 'strength' | 'bike';
+}
+
+interface StrengthWorkout extends BaseWorkout {
+  type: 'strength';
+  exerciseName: string;
+  sets: WorkoutSet[];
+}
+
+interface BikeWorkout extends BaseWorkout {
+  type: 'bike';
+  time: number;
+  distance: number;
+}
+
+type Workout = StrengthWorkout | BikeWorkout;
 
 export default function WorkoutTracker() {
   const [view, setView] = useState('log');
   const [workoutType, setWorkoutType] = useState('strength');
-  const [workouts, setWorkouts] = useState([]);
+  const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [selectedExercise, setSelectedExercise] = useState('');
   
   // Strength form states
   const [exerciseName, setExerciseName] = useState('');
   const [isNewExercise, setIsNewExercise] = useState(false);
-  const [currentSets, setCurrentSets] = useState([]);
+  const [currentSets, setCurrentSets] = useState<WorkoutSet[]>([]);
   const [setWeight, setSetWeight] = useState('');
   const [setReps, setSetReps] = useState('');
   
@@ -34,7 +59,7 @@ export default function WorkoutTracker() {
     }
   };
 
-  const saveWorkouts = (newWorkouts) => {
+  const saveWorkouts = (newWorkouts: Workout[]) => {
     try {
       localStorage.setItem('workouts', JSON.stringify(newWorkouts));
       setWorkouts(newWorkouts);
@@ -53,13 +78,13 @@ export default function WorkoutTracker() {
     }
   };
 
-  const removeSet = (index) => {
+  const removeSet = (index: number) => {
     setCurrentSets(currentSets.filter((_, i) => i !== index));
   };
 
   const logStrengthWorkout = () => {
     if (exerciseName && currentSets.length > 0) {
-      const newWorkout = {
+      const newWorkout: StrengthWorkout = {
         id: Date.now(),
         date: new Date().toISOString(),
         type: 'strength',
@@ -80,7 +105,7 @@ export default function WorkoutTracker() {
   };
 
   const logBikeWorkout = () => {
-    const newWorkout = {
+    const newWorkout: BikeWorkout = {
       id: Date.now(),
       date: new Date().toISOString(),
       type: 'bike',
@@ -95,31 +120,31 @@ export default function WorkoutTracker() {
     setBikeDistance('');
   };
 
-  const deleteWorkout = (id) => {
+  const deleteWorkout = (id: number) => {
     const updated = workouts.filter(w => w.id !== id);
     saveWorkouts(updated);
   };
 
   const getUniqueExercises = () => {
     const exercises = workouts
-      .filter(w => w.type === 'strength')
+      .filter((w): w is StrengthWorkout => w.type === 'strength')
       .map(w => w.exerciseName);
     return [...new Set(exercises)].sort();
   };
 
-  const getLastWorkout = (exerciseName) => {
+  const getLastWorkout = (exerciseName: string) => {
     return workouts
-      .filter(w => w.type === 'strength' && w.exerciseName === exerciseName)
-      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      .filter((w): w is StrengthWorkout => w.type === 'strength' && w.exerciseName === exerciseName)
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   };
 
   const getLastBikeWorkout = () => {
     return workouts
-      .filter(w => w.type === 'bike')
-      .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+      .filter((w): w is BikeWorkout => w.type === 'bike')
+      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0];
   };
 
-  const handleExerciseSelect = (exercise) => {
+  const handleExerciseSelect = (exercise: string) => {
     setExerciseName(exercise);
     if (exercise && !isNewExercise) {
       const lastWorkout = getLastWorkout(exercise);
@@ -149,7 +174,7 @@ export default function WorkoutTracker() {
   const getProgressData = () => {
     if (workoutType === 'strength' && selectedExercise) {
       return workouts
-        .filter(w => w.type === 'strength' && w.exerciseName === selectedExercise)
+        .filter((w): w is StrengthWorkout => w.type === 'strength' && w.exerciseName === selectedExercise)
         .map(w => {
           const maxWeight = Math.max(...w.sets.map(s => s.weight));
           const totalVolume = w.sets.reduce((sum, s) => sum + (s.weight * s.reps), 0);
@@ -162,7 +187,7 @@ export default function WorkoutTracker() {
         .slice(-10);
     } else if (workoutType === 'bike') {
       return workouts
-        .filter(w => w.type === 'bike')
+        .filter((w): w is BikeWorkout => w.type === 'bike')
         .map(w => ({
           date: new Date(w.date).toLocaleDateString(),
           time: w.time,
@@ -173,7 +198,7 @@ export default function WorkoutTracker() {
     return [];
   };
 
-  const formatDate = (dateString) => {
+  const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
   };
@@ -419,13 +444,13 @@ export default function WorkoutTracker() {
                         </div>
                         {workout.type === 'strength' ? (
                           <div className="text-sm text-gray-600 space-y-1">
-                            {workout.sets.map((set, i) => (
+                            {(workout as StrengthWorkout).sets.map((set, i) => (
                               <div key={i}>Set {i + 1}: {set.weight} lbs × {set.reps} reps</div>
                             ))}
                           </div>
                         ) : (
                           <div className="text-sm text-gray-600">
-                            {workout.time} min{workout.distance ? ` • ${workout.distance} km` : ''}
+                            {(workout as BikeWorkout).time} min{(workout as BikeWorkout).distance ? ` • ${(workout as BikeWorkout).distance} km` : ''}
                           </div>
                         )}
                         <div className="text-xs text-gray-500 mt-2">{formatDate(workout.date)}</div>
