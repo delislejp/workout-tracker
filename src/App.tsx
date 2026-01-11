@@ -16,6 +16,7 @@ interface BaseWorkout {
 interface StrengthWorkout extends BaseWorkout {
   type: 'strength';
   exerciseName: string;
+  isPerArm?: boolean;
   sets: WorkoutSet[];
 }
 
@@ -36,6 +37,7 @@ export default function WorkoutTracker() {
   // Strength form states
   const [exerciseName, setExerciseName] = useState('');
   const [isNewExercise, setIsNewExercise] = useState(false);
+  const [isPerArm, setIsPerArm] = useState(false);
   const [currentSets, setCurrentSets] = useState<WorkoutSet[]>([]);
   const [setWeight, setSetWeight] = useState('');
   const [setReps, setSetReps] = useState('');
@@ -89,6 +91,7 @@ export default function WorkoutTracker() {
         date: new Date().toISOString(),
         type: 'strength',
         exerciseName,
+        isPerArm,
         sets: currentSets
       };
 
@@ -98,6 +101,7 @@ export default function WorkoutTracker() {
       // Reset form
       setExerciseName('');
       setIsNewExercise(false);
+      setIsPerArm(false);
       setCurrentSets([]);
       setSetWeight('');
       setSetReps('');
@@ -148,12 +152,19 @@ export default function WorkoutTracker() {
     setExerciseName(exercise);
     if (exercise && !isNewExercise) {
       const lastWorkout = getLastWorkout(exercise);
-      if (lastWorkout && lastWorkout.sets.length > 0) {
-        // Pre-fill with last set's values
-        const lastSet = lastWorkout.sets[lastWorkout.sets.length - 1];
-        setSetWeight(lastSet.weight.toString());
-        setSetReps(lastSet.reps.toString());
+      if (lastWorkout) {
+        setIsPerArm(!!lastWorkout.isPerArm);
+        if (lastWorkout.sets.length > 0) {
+          // Pre-fill with last set's values
+          const lastSet = lastWorkout.sets[lastWorkout.sets.length - 1];
+          setSetWeight(lastSet.weight.toString());
+          setSetReps(lastSet.reps.toString());
+        }
+      } else {
+        setIsPerArm(false);
       }
+    } else {
+      setIsPerArm(false);
     }
   };
 
@@ -176,8 +187,9 @@ export default function WorkoutTracker() {
       return workouts
         .filter((w): w is StrengthWorkout => w.type === 'strength' && w.exerciseName === selectedExercise)
         .map(w => {
-          const maxWeight = Math.max(...w.sets.map(s => s.weight));
-          const totalVolume = w.sets.reduce((sum, s) => sum + (s.weight * s.reps), 0);
+          const multiplier = w.isPerArm ? 2 : 1;
+          const maxWeight = Math.max(...w.sets.map(s => s.weight * multiplier));
+          const totalVolume = w.sets.reduce((sum, s) => sum + (s.weight * multiplier * s.reps), 0);
           return {
             date: new Date(w.date).toLocaleDateString(),
             maxWeight,
@@ -308,6 +320,7 @@ export default function WorkoutTracker() {
                             onClick={() => {
                               setIsNewExercise(false);
                               setExerciseName('');
+                              setIsPerArm(false);
                               setSetWeight('');
                               setSetReps('');
                             }}
@@ -319,6 +332,22 @@ export default function WorkoutTracker() {
                       </div>
                     )}
                   </div>
+
+                  {/* Per Arm Checkbox */}
+                  {(isNewExercise || exerciseName) && (
+                    <div className="flex items-center">
+                      <input
+                        type="checkbox"
+                        id="isPerArm"
+                        checked={isPerArm}
+                        onChange={(e) => setIsPerArm(e.target.checked)}
+                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                      />
+                      <label htmlFor="isPerArm" className="ml-2 block text-sm text-gray-700">
+                        Weight is per arm
+                      </label>
+                    </div>
+                  )}
 
                   {/* Current Sets Display */}
                   {currentSets.length > 0 && (
@@ -444,6 +473,9 @@ export default function WorkoutTracker() {
                         </div>
                         {workout.type === 'strength' ? (
                           <div className="text-sm text-gray-600 space-y-1">
+                            {(workout as StrengthWorkout).isPerArm && (
+                              <div className="text-xs font-medium text-blue-600 mb-1">(Weight per arm)</div>
+                            )}
                             {(workout as StrengthWorkout).sets.map((set, i) => (
                               <div key={i}>Set {i + 1}: {set.weight} lbs × {set.reps} reps</div>
                             ))}
