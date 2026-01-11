@@ -25,7 +25,8 @@ export function ProgressCharts({
         .filter((w): w is StrengthWorkout => w.type === 'strength' && w.exerciseName === selectedExercise)
         .map(w => {
           const maxWeight = Math.max(...w.sets.map(s => s.weight));
-          const totalVolume = w.sets.reduce((sum, s) => sum + (s.weight * s.reps), 0);
+          const multiplier = w.isPerArm ? 2 : 1;
+          const totalVolume = w.sets.reduce((sum, s) => sum + (s.weight * s.reps * multiplier), 0);
           return {
             date: new Date(w.date).toLocaleDateString(),
             maxWeight,

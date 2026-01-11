@@ -14,6 +14,7 @@ export function StrengthForm({ uniqueExercises, getLastWorkout, onLogWorkout }: 
   const [currentSets, setCurrentSets] = useState<WorkoutSet[]>([]);
   const [setWeight, setSetWeight] = useState('');
   const [setReps, setSetReps] = useState('');
+  const [isPerArm, setIsPerArm] = useState(false);
 
   const addSet = () => {
     if (setWeight && setReps) {
@@ -35,6 +36,7 @@ export function StrengthForm({ uniqueExercises, getLastWorkout, onLogWorkout }: 
         date: new Date().toISOString(),
         type: 'strength',
         exerciseName,
+        isPerArm,
         sets: currentSets
       };
 
@@ -45,6 +47,7 @@ export function StrengthForm({ uniqueExercises, getLastWorkout, onLogWorkout }: 
       setCurrentSets([]);
       setSetWeight('');
       setSetReps('');
+      setIsPerArm(false);
     }
   };
 
@@ -52,10 +55,15 @@ export function StrengthForm({ uniqueExercises, getLastWorkout, onLogWorkout }: 
     setExerciseName(exercise);
     if (exercise && !isNewExercise) {
       const lastWorkout = getLastWorkout(exercise);
-      if (lastWorkout && lastWorkout.sets.length > 0) {
-        const lastSet = lastWorkout.sets[lastWorkout.sets.length - 1];
-        setSetWeight(lastSet.weight.toString());
-        setSetReps(lastSet.reps.toString());
+      if (lastWorkout) {
+        if (lastWorkout.isPerArm !== undefined) {
+          setIsPerArm(lastWorkout.isPerArm);
+        }
+        if (lastWorkout.sets.length > 0) {
+          const lastSet = lastWorkout.sets[lastWorkout.sets.length - 1];
+          setSetWeight(lastSet.weight.toString());
+          setSetReps(lastSet.reps.toString());
+        }
       }
     }
   };
@@ -77,12 +85,23 @@ export function StrengthForm({ uniqueExercises, getLastWorkout, onLogWorkout }: 
                 <option key={ex} value={ex}>{ex}</option>
               ))}
             </select>
-            <button
-              onClick={() => setIsNewExercise(true)}
-              className="text-sm text-blue-600 hover:text-blue-700"
-            >
-              + Add new exercise
-            </button>
+            <div className="flex items-center justify-between">
+              <button
+                onClick={() => setIsNewExercise(true)}
+                className="text-sm text-blue-600 hover:text-blue-700"
+              >
+                + Add new exercise
+              </button>
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isPerArm}
+                  onChange={(e) => setIsPerArm(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-600">Per Arm</span>
+              </label>
+            </div>
           </div>
         ) : (
           <div className="space-y-2">
@@ -93,19 +112,30 @@ export function StrengthForm({ uniqueExercises, getLastWorkout, onLogWorkout }: 
               placeholder="e.g., Bench Press"
               className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
             />
-            {uniqueExercises.length > 0 && (
-              <button
-                onClick={() => {
-                  setIsNewExercise(false);
-                  setExerciseName('');
-                  setSetWeight('');
-                  setSetReps('');
-                }}
-                className="text-sm text-blue-600 hover:text-blue-700"
-              >
-                ← Choose from existing exercises
-              </button>
-            )}
+            <div className="flex items-center justify-between">
+              {uniqueExercises.length > 0 && (
+                <button
+                  onClick={() => {
+                    setIsNewExercise(false);
+                    setExerciseName('');
+                    setSetWeight('');
+                    setSetReps('');
+                  }}
+                  className="text-sm text-blue-600 hover:text-blue-700"
+                >
+                  ← Choose from existing exercises
+                </button>
+              )}
+               <label className="flex items-center gap-2 cursor-pointer ml-auto">
+                <input
+                  type="checkbox"
+                  checked={isPerArm}
+                  onChange={(e) => setIsPerArm(e.target.checked)}
+                  className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                />
+                <span className="text-sm text-gray-600">Per Arm</span>
+              </label>
+            </div>
           </div>
         )}
       </div>

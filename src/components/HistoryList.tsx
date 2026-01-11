@@ -27,7 +27,14 @@ export function HistoryList({ workouts, onDelete }: HistoryListProps) {
           <div key={workout.id} className="bg-gray-50 p-3 rounded-lg">
             <div className="flex justify-between items-start mb-2">
               <div className="font-semibold text-gray-800">
-                {workout.type === 'strength' ? (workout as StrengthWorkout).exerciseName : 'Stationary Bike'}
+                {workout.type === 'strength' ? (
+                  <>
+                    {(workout as StrengthWorkout).exerciseName}
+                    {(workout as StrengthWorkout).isPerArm && (
+                      <span className="text-xs text-blue-600 font-medium ml-2 bg-blue-50 px-1.5 py-0.5 rounded">Per Arm</span>
+                    )}
+                  </>
+                ) : 'Stationary Bike'}
               </div>
               <button
                 onClick={() => onDelete(workout.id)}

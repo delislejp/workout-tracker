@@ -12,6 +12,7 @@ export interface BaseWorkout {
 export interface StrengthWorkout extends BaseWorkout {
   type: 'strength';
   exerciseName: string;
+  isPerArm?: boolean;
   sets: WorkoutSet[];
 }
 
